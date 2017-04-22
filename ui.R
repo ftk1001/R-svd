@@ -26,10 +26,10 @@ shinyUI(pageWithSidebar(
     tags$head(tags$style("html.shiny-busy .container-fluid {filter: blur(5px)}
                     .shiny-image-output {min-height: 200px; height: auto !important}")),
     h4("Default Image (512 rows)"),
-    imageOutput("default"),
-    h4("Generated Image"),
+    img(src="sample.png", width = 384, height = 256),
+    tags$h4(style="margin-top:20px", "Generated Image"),
     imageOutput("generated"),
-    h4("Without Diagonal"),
+    tags$h4(style="margin-top:20px", "Without Diagonal"),
     imageOutput("wDiag")
   )
 ))

@@ -5,13 +5,33 @@ library("EBImage")
 
 shinyServer(function(input, output, session) {
   
-  w = 400
-  h = 300
+  w = 384
+  h = 256
   
-  f = 'sample.png'
+  f = 'www/sample.png'
   img = readImage(f)
+  res = svd(img)
   
-  res <- svd(img)
+  makeList <- function(fl, txt) {
+    list(src = fl,
+         contentType = 'image/png',
+         width = w,
+         height = h,
+         alt = txt)
+  }
+  
+  outfile <- function() {
+    outfile <- tempfile(fileext = '.png')
+  }
+  
+  processImage <- function(outfile, img) {
+    png(outfile, width = 2 * w, height = 2 * h)
+    par(mar = c(0,0,0,0))
+    tImage <- img
+    colorMode(tImage) = Grayscale
+    image(flip(tImage))
+    dev.off()
+  }
   
   d = res[[1]]
   D = diag(d)
@@ -20,21 +40,6 @@ shinyServer(function(input, output, session) {
   
   V = res[[3]]
   tV = t(V)
-  
-  # DEFAULT
-  output$default <- renderImage({
-    outfile <- tempfile(fileext = '.png')
-    
-    png(outfile, width = 2 * w, height = 2 * h)
-    image(flip(img))
-    dev.off()
-    
-    list(src = outfile,
-         contentType = 'image/png',
-         width = w,
-         height = h,
-         alt = input$obs)
-  }, deleteFile = TRUE)
   
   #GENERATED
   output$generated <- renderImage({
@@ -46,34 +51,16 @@ shinyServer(function(input, output, session) {
     }
     
     # Display image
-    outfile <- tempfile(fileext = '.png')
+    outfile <- outfile()
+    processImage(outfile, Image(apx_img))
     
-    png(outfile, width = 2 * w, height = 2 * h)
-    tImage <- Image(apx_img)
-    colorMode(tImage) = Grayscale
-    image(flip(tImage))
-    dev.off()
-    
-    list(src = outfile,
-         contentType = 'image/png',
-         width = w,
-         height = h,
-         alt = "Generated")
+    makeList(outfile, 'Generated')
   }, deleteFile = TRUE)
   
   output$wDiag <- renderImage({
-    outfile <- tempfile(fileext = '.png')
+    outfile <- outfile()
+    processImage(outfile, Image(input$amplitude * (U %*% tV)))
     
-    png(outfile, width = 2 * w, height = 2 * h)
-    tImage <- Image(input$amplitude*(U%*%tV))
-    colorMode(tImage) = Grayscale
-    image(flip(tImage))
-    dev.off()
-    
-    list(src = outfile,
-         contentType = 'image/png',
-         width = w,
-         height = h,
-         alt = "Generated")
+    makeList(outfile, 'Alternate')
   }, deleteFile = TRUE)
 })
