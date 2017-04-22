@@ -1,8 +1,0 @@
-html.shiny-busy .container-fluid {
-  filter: blur(5px)
-}
-
-.shiny-image-output {
-  min-height: 200px;
-  height: auto !important
-}
