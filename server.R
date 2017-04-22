@@ -1,7 +1,7 @@
 # server.R
 
 library(shiny)
-library("EBImage")
+library(EBImage)
 
 shinyServer(function(input, output, session) {
   
