@@ -13,13 +13,17 @@ f = 'www/sample.png'
 img = readImage(f)
 res = svd(img)
 
-d = res[[1]]
-D = diag(d)
+D = diag(res[[1]])
 
 U = res[[2]]
 
 V = res[[3]]
 tV = t(V)
+
+apx_img = matrix( rep(0, 768*512), ncol=512)
+for (i in 1:input$rows) {
+  apx_img = apx_img + d[i] * matrix(U[,i], ncol = 1)%*%tV[i,]
+}
 
 makeList <- function(fl, txt) {
   list(src = fl,
@@ -43,24 +47,13 @@ processImage <- function(outfile, img) {
 }
 
 server <- shinyServer(function(input, output, session) {
-  
-  # GENERATED
   output$generated <- renderImage({
-    
-    # Compress Image
-    apx_img = matrix( rep(0, 768*512), ncol=512)
-    for (i in 1:input$rows) {
-      apx_img = apx_img + d[i] * matrix(U[,i], ncol = 1)%*%tV[i,]
-    }
-    
-    # Display image
     outfile <- outfile()
     processImage(outfile, Image(apx_img))
     
     makeList(outfile, 'Generated')
   }, deleteFile = TRUE)
   
-  # DIAGONAL
   output$wDiag <- renderImage({
     outfile <- outfile()
     processImage(outfile, Image(input$amplitude * (U %*% tV)))
@@ -86,12 +79,21 @@ ui <- shinyUI(pageWithSidebar(
   ),
   mainPanel(
     tags$head(tags$link(rel = "stylesheet", href = "style.css", type = "text/css")),
-    h4(paste('Default Image (', NCOL(D), ' rows)', sep = '')),
-    img(src = substring(f, 5), width = w, height = h),
-    h4("Generated Image"),
-    imageOutput("generated"),
-    h4("Without Diagonal"),
-    imageOutput("wDiag")
+    tags$div(
+      class = "img-block",
+      h4(paste('Default Image (', NCOL(D), ' rows)', sep = '')),
+      img(src = substring(f, 5), width = w, height = h)
+    ),
+    tags$div(
+      class = "img-block",
+      h4("Generated Image"),
+      imageOutput("generated")
+    ),
+    tags$div(
+      class = "img-block",
+      h4("Without Diagonal"),
+      imageOutput("wDiag")
+    )
   )
 ))
 
