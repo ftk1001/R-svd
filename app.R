@@ -1,7 +1,6 @@
 # app.R
 # Demonstrates image compression with Singular Value Decomposition
 # Author: hafiz
-# Date: 4-22-17
 
 library(shiny)
 library(EBImage)
@@ -20,10 +19,7 @@ U = res[[2]]
 V = res[[3]]
 tV = t(V)
 
-apx_img = matrix( rep(0, 768*512), ncol=512)
-for (i in 1:input$rows) {
-  apx_img = apx_img + d[i] * matrix(U[,i], ncol = 1)%*%tV[i,]
-}
+apx_img = matrix( rep(0, NROW(img) * NCOL(img)), ncol = NCOL(img))
 
 makeList <- function(fl, txt) {
   list(src = fl,
@@ -48,6 +44,10 @@ processImage <- function(outfile, img) {
 
 server <- shinyServer(function(input, output, session) {
   output$generated <- renderImage({
+    for (i in 1:input$rows) {
+      apx_img = apx_img + d[i] * matrix(U[,i], ncol = 1)%*%tV[i,]
+    }
+    
     outfile <- outfile()
     processImage(outfile, Image(apx_img))
     
