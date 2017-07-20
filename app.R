@@ -1,64 +1,87 @@
-# app.R
-# Demonstrates image compression with Singular Value Decomposition
+# Simple image compression with Singular Value Decomposition
 # Author: hafiz
 
 library(shiny)
 library(EBImage)
+library(GetoptLong)
 
-w = 384
-h = 256
-f = 'www/sample.png'
+width = 384
+height = 256
+file = 'www/sample.png'
 
-img = readImage(f)
-res = svd(img)
-
-D = diag(res[[1]])
-
-U = res[[2]]
-
-V = res[[3]]
-tV = t(V)
-
-apx_img = matrix( rep(0, NROW(img) * NCOL(img)), ncol = NCOL(img))
-
-makeList <- function(fl, txt) {
-  list(src = fl,
+makeList <- function(file, text) {
+  list(src = file,
        contentType = 'image/png',
-       width = w,
-       height = h,
-       alt = txt)
+       width = width,
+       height = height,
+       alt = text)
 }
 
 outfile <- function() {
   outfile <- tempfile(fileext = '.png')
 }
 
+deconstructImage <- function(f) {
+  tp = c()
+  
+  tp$img = readImage(f)
+  tp$res = svd(tp$img)
+  
+  tp$D = diag(tp$res[[1]])
+  tp$U = tp$res[[2]]
+  tp$V = tp$res[[3]]
+  tp$t.V = t(tp$V)
+  
+  tp$proc.img = matrix(rep(0, NROW(tp$img) * NCOL(tp$img)), ncol = NCOL(tp$img))
+  
+  return(tp)
+}
+
 processImage <- function(outfile, img) {
-  png(outfile, width = 2 * w, height = 2 * h)
+  png(outfile, width = width, height = height)
   par(mar = c(0,0,0,0))
-  tImage <- img
-  colorMode(tImage) = Grayscale
-  image(flip(tImage))
+  t.image <- img
+  colorMode(t.image) = Grayscale
+  image(flip(t.image))
   dev.off()
+}
+
+percentDifference <- function(old, new) {
+  (old - new) / old * 100
 }
 
 server <- shinyServer(function(input, output, session) {
   output$generated <- renderImage({
-    for (i in 1:input$rows) {
-      apx_img = apx_img + d[i] * matrix(U[,i], ncol = 1)%*%tV[i,]
+    in.img <- input$img
+    if (!is.null(in.img)) {
+      file.rename(in.img$datapath, qq("@{in.img$datapath}.png"))
+      file = qq("@{in.img$datapath}.png")
     }
     
-    outfile <- outfile()
-    processImage(outfile, Image(apx_img))
+    bf = deconstructImage(file)
     
+    for (i in 1:input$rows) {
+      bf$proc.img = bf$proc.img + bf$res[[1]][i] * (
+        (matrix(bf$U[ ,i], ncol = 1) %*% bf$t.V[i, ])
+      )
+    }
+
+    outfile <- outfile()
+    processImage(outfile, Image(bf$proc.img))
+    
+    updateSliderInput(session, "rows", value = input$rows, max = NCOL(bf$D))
+    output$maxRows <- renderText({qq("(@{NCOL(bf$D)} rows)")})
+    
+    org.size = file.info(file)$size
+    new.size = file.info(outfile)$size
+    output$imageSize <- renderText({
+      qq(paste(
+          "@{round(percentDifference(org.size, new.size), 3)}% compression;",
+          "saved @{utils:::format.object_size(org.size - new.size, 'auto')}", 
+          sep = " "))
+    }, quoted = TRUE)
+
     makeList(outfile, 'Generated')
-  }, deleteFile = TRUE)
-  
-  output$wDiag <- renderImage({
-    outfile <- outfile()
-    processImage(outfile, Image(input$amplitude * (U %*% tV)))
-    
-    makeList(outfile, 'Alternate')
   }, deleteFile = TRUE)
 })
 
@@ -68,31 +91,39 @@ ui <- shinyUI(pageWithSidebar(
                 conditionalPanel(
                   condition = "($('html').hasClass('shiny-busy'))",
                   tags$div(class = "overlay"),
-                  tags$div(class = "load-text", 
+                  tags$div(class = "load-text",
                            "This may take a minute..."))
   )),
   sidebarPanel(
+    fileInput('img', 'Choose PNG Image',
+              accept = c(
+                'image/png',
+                '.png')
+              ),
     sliderInput("rows", "Number of matrix rows:",
-                min = 0, max = NCOL(D), value = 20),
+                min = 0, max = 512, value = 20),
     sliderInput("amplitude", "Amplitude:",
                 min = -255, max = 255, value = 20)
   ),
   mainPanel(
-    tags$head(tags$link(rel = "stylesheet", href = "style.css", type = "text/css")),
-    tags$div(
-      class = "img-block",
-      h4(paste('Default Image (', NCOL(D), ' rows)', sep = '')),
-      img(src = substring(f, 5), width = w, height = h)
+    tags$head(
+      tags$link(rel = "stylesheet", href = "style.css", type = "text/css")
     ),
     tags$div(
       class = "img-block",
-      h4("Generated Image"),
+      tags$h4(
+        tags$span('Default Image'),
+        textOutput("maxRows", inline = TRUE)
+      ),
+      img(src = substring(file, 5), width = width, height = height)
+    ),
+    tags$div(
+      class = "img-block",
+      tags$h4(
+        "Generated Image",
+        textOutput("imageSize")
+      ),
       imageOutput("generated")
-    ),
-    tags$div(
-      class = "img-block",
-      h4("Without Diagonal"),
-      imageOutput("wDiag")
     )
   )
 ))
