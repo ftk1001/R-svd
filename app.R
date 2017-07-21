@@ -4,6 +4,7 @@
 library(shiny)
 library(EBImage)
 library(GetoptLong)
+install.packages("GetoptLong")
 
 width = 384
 height = 256
@@ -21,18 +22,41 @@ outfile <- function() {
   outfile <- tempfile(fileext = '.png')
 }
 
+# deconstructImage <- function(f) {
+#   tp = c()
+#   
+#   tp$img = readImage(f)
+#   tp$res = svd(tp$img)
+#   
+#   tp$D = diag(tp$res[[1]])
+#   tp$U = tp$res[[2]]
+#   tp$V = tp$res[[3]]
+#   tp$t.V = t(tp$V)
+#   
+#   tp$proc.img = matrix(rep(0, NROW(tp$img) * NCOL(tp$img)), ncol = NCOL(tp$img))
+#   
+#   return(tp)
+# }
+
+
 deconstructImage <- function(f) {
-  tp = c()
   
-  tp$img = readImage(f)
-  tp$res = svd(tp$img)
+  x = readImage(f)
+  s = svd(x)
+  # tp$img = readImage(f)
+  (pixels = NROW(x) * NCOL(x))
+  tp = list(img=x, res=s, D = s$d, 
+            U = s$u, V = s$v, t.V=t(s$v), 
+            proc.img = matrix(rep(0, pixels), ncol = NCOL(x))
+            )
+  # tp$res = svd(tp$img)
   
-  tp$D = diag(tp$res[[1]])
-  tp$U = tp$res[[2]]
-  tp$V = tp$res[[3]]
-  tp$t.V = t(tp$V)
-  
-  tp$proc.img = matrix(rep(0, NROW(tp$img) * NCOL(tp$img)), ncol = NCOL(tp$img))
+  # tp$D = diag(tp$res[[1]])
+  # tp$U = tp$res[[]2]
+  # tp$V = tp$res[[3]]
+  # tp$t.V = t(tp$V)
+  # 
+  # tp$proc.img = matrix(rep(0, NROW(tp$img) * NCOL(tp$img)), ncol = NCOL(tp$img))
   
   return(tp)
 }
