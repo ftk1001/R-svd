@@ -22,42 +22,17 @@ outfile <- function() {
   outfile <- tempfile(fileext = '.png')
 }
 
-# deconstructImage <- function(f) {
-#   tp = c()
-#   
-#   tp$img = readImage(f)
-#   tp$res = svd(tp$img)
-#   
-#   tp$D = diag(tp$res[[1]])
-#   tp$U = tp$res[[2]]
-#   tp$V = tp$res[[3]]
-#   tp$t.V = t(tp$V)
-#   
-#   tp$proc.img = matrix(rep(0, NROW(tp$img) * NCOL(tp$img)), ncol = NCOL(tp$img))
-#   
-#   return(tp)
-# }
-
 
 deconstructImage <- function(f) {
   
   x = readImage(f)
+  x = channel(x, "gray")
   s = svd(x)
-  # tp$img = readImage(f)
   (pixels = NROW(x) * NCOL(x))
-  tp = list(img=x, res=s, D = s$d, 
+  tp = list(img=x, res=s, D = diag(s$d), 
             U = s$u, V = s$v, t.V=t(s$v), 
             proc.img = matrix(rep(0, pixels), ncol = NCOL(x))
-            )
-  # tp$res = svd(tp$img)
-  
-  # tp$D = diag(tp$res[[1]])
-  # tp$U = tp$res[[]2]
-  # tp$V = tp$res[[3]]
-  # tp$t.V = t(tp$V)
-  # 
-  # tp$proc.img = matrix(rep(0, NROW(tp$img) * NCOL(tp$img)), ncol = NCOL(tp$img))
-  
+  )
   return(tp)
 }
 
@@ -82,12 +57,13 @@ server <- shinyServer(function(input, output, session) {
       file = qq("@{in.img$datapath}.png")
     }
     
-    bf = deconstructImage(file)
+    bf    = deconstructImage(file)
     
     for (i in 1:input$rows) {
-      bf$proc.img = bf$proc.img + bf$res[[1]][i] * (
-        (matrix(bf$U[ ,i], ncol = 1) %*% bf$t.V[i, ])
-      )
+      tmp0 = (matrix(bf$U[ ,i], ncol = 1) %*% bf$t.V[i, ])
+      tmp = bf$res[[1]][i] * tmp0
+      bf$proc.img = bf$proc.img + tmp
+      
     }
 
     outfile <- outfile()
